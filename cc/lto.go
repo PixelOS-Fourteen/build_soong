@@ -103,6 +103,7 @@ func (lto *lto) flags(ctx BaseModuleContext, flags Flags) Flags {
 			ltoCFlag = "-flto=thin -fsplit-lto-unit"
 		} else if lto.FullLTO() {
 			ltoCFlag = "-flto"
+			ltoLdFlag = "-Wl,--lto-O3"
 		} else {
 			ltoCFlag = "-flto=thin -fsplit-lto-unit"
 			ltoLdFlag = "-Wl,--lto-O0"
@@ -112,6 +113,13 @@ func (lto *lto) flags(ctx BaseModuleContext, flags Flags) Flags {
 		flags.Local.AsFlags = append(flags.Local.AsFlags, ltoCFlag)
 		flags.Local.LdFlags = append(flags.Local.LdFlags, ltoCFlag)
 		flags.Local.LdFlags = append(flags.Local.LdFlags, ltoLdFlag)
+
+		if !ctx.isPgoCompile() && !ctx.isAfdoCompile() {
+			flags.Local.LdFlags = append(flags.Local.LdFlags, "-Wl,--lto-O3")
+			flags.Local.LdFlags = append(flags.Local.LdFlags, "-Wl,-mllvm,-inline-threshold=600")
+			flags.Local.LdFlags = append(flags.Local.LdFlags, "-Wl,-mllvm,-inlinehint-threshold=750")
+			flags.Local.LdFlags = append(flags.Local.LdFlags, "-Wl,-mllvm,-unroll-threshold=600")
+		}
 
 		if Bool(lto.Properties.Whole_program_vtables) {
 			flags.Local.CFlags = append(flags.Local.CFlags, "-fwhole-program-vtables")
@@ -135,12 +143,6 @@ func (lto *lto) flags(ctx BaseModuleContext, flags Flags) Flags {
 		if !ctx.isPgoCompile() && !ctx.isAfdoCompile() {
 			flags.Local.LdFlags = append(flags.Local.LdFlags,
 				"-Wl,-plugin-opt,-import-instr-limit=40")
-			flags.Local.LdFlags = append(flags.Local.LdFlags,
-				"-Wl,-mllvm,-inline-threshold=600")
-			flags.Local.LdFlags = append(flags.Local.LdFlags,
-				"-Wl,-mllvm,-inlinehint-threshold=750")
-			flags.Local.LdFlags = append(flags.Local.LdFlags,
-				"-Wl,-mllvm,-unroll-threshold=600")
 		}
 	}
 	return flags
